@@ -48,7 +48,7 @@ class Benchmark:
                 end = time.monotonic_ns()
 
                 times.append(end - start)
-                outputs.append(output.decode().count("\n") + 1)
+                outputs.append(len(output.decode().splitlines()))
 
             results.append(Result(command[0], mean(times), stdev(times), outputs[0]))
 
