@@ -2,7 +2,7 @@
 
 import time
 import shlex
-from subprocess import check_output
+from subprocess import check_output, run
 from functools import reduce
 from statistics import stdev, mean
 from decimal import Decimal
@@ -21,58 +21,63 @@ class Result:
         output_str = self.output.rjust(output_len)
         print(f"    {name_str} : {avg_str} ms +/- {stdev_str}  ->  {output_str} matches")
 
+class Program:
+    def __init__(self, name, make_cmd):
+        self.name = name
+        self.make_cmd = make_cmd
+
 class Benchmark:
-    def __init__(self, name, pattern, search_text, commands):
+    def __init__(self, name, pattern, search_text):
         self.name = name
         self.pattern = pattern
         self.search_text = search_text
-        self.commands = commands
 
-    def run(self):
+    def run(self, programs):
         results = []
         
-        for command in self.commands:
-            cmd_args = command[1](self.pattern, self.search_text)
-            cmd_args = shlex.split(cmd_args)
+        for program in programs:
+            cmd = shlex.split(program.make_cmd(self.pattern, self.search_text))
 
             # warmup to bring search text into page cache
             # see https://blog.burntsushi.net/ripgrep/#benchmark-runner
             for i in range(3):
-                check_output(cmd_args)
+                check_output(cmd)
 
             times = []
             outputs = [] # num lines in each output
             # get 10 sample times, return avg and standard deviation
             for i in range(10):
                 start = time.monotonic_ns()
-                output = check_output(cmd_args)
+                output = check_output(cmd)
                 end = time.monotonic_ns()
 
                 times.append(end - start)
                 outputs.append(len(output.decode().splitlines()))
 
-            results.append(Result(command[0], mean(times), stdev(times), outputs[0]))
+            results.append(Result(program.name, mean(times), stdev(times), outputs[0]))
 
         return results
 
 benchmarks = [
     Benchmark(
         "find 'on' in 3.7Ki of randomly generated text (dummy.txt)",
-        "on", "bench_data/dummy.txt",
-        [   ("bmh", lambda p,t: f"./target/bmh {p} {t}"),
-            ("grep", lambda p,t: f"grep -ob {p} {t}"),
-            ("fixed grep", lambda p,t: f"grep -F -ob {p} {t}"),
-            ("ripgrep", lambda p,t: f"rg -ob {p} {t}"),
-            ("fixed ripgrep", lambda p,t: f"rg -F -ob {p} {t}"),
-        ]
-    )
+        "on", "bench_data/dummy.txt"
+    ),
+]
+
+programs = [
+    Program("bmh", lambda p,t: f"./target/bmh {p} {t}"),
+    Program("grep", lambda p,t: f"grep -ob {p} {t}"),
+    Program("fixed grep", lambda p,t: f"grep -F -ob {p} {t}"),
+    Program("ripgrep", lambda p,t: f"rg -ob {p} {t}"),
+    Program("fixed ripgrep", lambda p,t: f"rg -F -ob {p} {t}"),
 ]
 
 print("running benchmarks\n")
 
 for benchmark in benchmarks:
     print(benchmark.name)
-    results = [result for result in benchmark.run()]
+    results = [result for result in benchmark.run(programs)]
     
     max_name_len = reduce(lambda l, r: max(l, len(r.name)), results, 0)
     max_avg_len = reduce(lambda l, r: max(l, len(r.time_avg)), results, 0)
