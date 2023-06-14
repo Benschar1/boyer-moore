@@ -60,6 +60,9 @@ benchmarks = [
         "on", "bench_data/dummy.txt",
         [   ("bmh", lambda p,t: f"./target/bmh {p} {t}"),
             ("grep", lambda p,t: f"grep -ob {p} {t}"),
+            ("fixed grep", lambda p,t: f"grep -F -ob {p} {t}"),
+            ("ripgrep", lambda p,t: f"rg -ob {p} {t}"),
+            ("fixed ripgrep", lambda p,t: f"rg -F -ob {p} {t}"),
         ]
     )
 ]
