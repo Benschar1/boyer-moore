@@ -63,6 +63,10 @@ benchmarks = [
         "find 'on' in 3.7Ki of randomly generated text (dummy.txt)",
         "on", "bench_data/dummy.txt"
     ),
+    Benchmark(
+        "find 'testif' in King James Bible (4.2Mi)",
+        "testif", "bench_data/kjv-bible.txt"
+    ),
 ]
 
 programs = [
