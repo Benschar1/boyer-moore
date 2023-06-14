@@ -5,12 +5,13 @@ import shlex
 from subprocess import check_output
 from functools import reduce
 from statistics import stdev, mean
+from decimal import Decimal
 
 class Result:
     def __init__(self, name, time_avg, time_stdev, output):
         self.name = name
-        self.time_avg = str(round(time_avg / 1000000, 3))
-        self.time_stdev = str(round(time_stdev / 1000000, 3))
+        self.time_avg = str(round(Decimal(time_avg) / 1000000, 3))
+        self.time_stdev = str(round(Decimal(time_stdev) / 1000000, 3))
         self.output = str(output)
 
     def display(self, name_len, avg_len, stdev_len, output_len):
