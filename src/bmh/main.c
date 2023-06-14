@@ -47,8 +47,8 @@ void compute_matches() {
         p = pattern_len;
         for (p = pattern_len; p >= 0;) {
             if (p == 0) {
-                //found match at i..align_end inclusive
-                printf("%d..%d\n", i + 1, align_end);
+                //found match at i
+                printf("%d\n", i);
                 align_end++;
                 break;
             }
@@ -99,6 +99,5 @@ int main(int argc, char *argv[]) {
     }
 
     compute_table();
-    printf("matches, inclusive 1-based sub lists\n");
     compute_matches();
 }
