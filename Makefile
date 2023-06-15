@@ -1,7 +1,7 @@
 
 target/bmh: src/bmh/main.c
 	mkdir -p target
-	gcc -o target/bmh src/bmh/main.c
+	gcc -O3 -o target/bmh src/bmh/main.c
 
 bench: target/bmh
 	@./bench.py
