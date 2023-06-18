@@ -17,8 +17,8 @@ USAGE:\n\
 "
 
 static intptr_t table[ALPHABET_SIZE];
-static char *pattern;
-static char *input;
+static unsigned char *pattern;
+static unsigned char *input;
 static size_t pattern_len;
 static size_t input_len;
 
