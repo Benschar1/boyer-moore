@@ -1,0 +1,24 @@
+---
+file: gcc-text.txt
+cases:
+  - {pattern: "int main(int argc, char *argv[])", matches: 83}
+  - {pattern: "for (int i = 0; i < n; i++)", matches: 995}
+  - {pattern: "/* { dg-final { scan-assembler", matches: 64078}
+  - {pattern: "                    ", matches: 322119}
+
+---
+file: kjv-bible.txt
+cases:
+  - {pattern: "testif", matches: 62}
+  - {pattern: "And God", matches: 84}
+  - {pattern: "written in the book of the chronicles of the king", matches: 34}
+  - {pattern: "tabernacle of the congregation", matches: 132}
+  - {pattern: "And the LORD spake unto Moses, saying", matches: 72}
+  - {pattern: " the LORD ", matches: 3544}
+  - {pattern: "the children of ", matches: 1254}
+
+---
+file: dummy.txt
+cases:
+  - {pattern: "tion ", matches: 9}
+  - {pattern: "ed ", matches: 36}
