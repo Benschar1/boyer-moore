@@ -9,6 +9,7 @@
 #include <fts.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <limits.h>
 
 #define ALPHABET_SIZE 256
 
@@ -85,7 +86,16 @@ int main(int argc, char *argv[]) {
 
     compute_table();
     
-    FTS *fts = fts_open(argv + 2, FTS_PHYSICAL, compare_dirs);
+    char **files = calloc(argc - 1, sizeof(char *));
+    for (int i = 2; i < argc; i++) {
+        files[i-2] = realpath(argv[i], NULL);
+        if (files[i-2] == NULL) {
+            fprintf(stderr, "Error resolving path %s", argv[i]);
+            perror("");
+            exit(1);
+        }
+    }
+    FTS *fts = fts_open(files, FTS_PHYSICAL, compare_dirs);
     FTSENT *ftsent;
     unsigned short fts_info;
     unsigned char *input;
