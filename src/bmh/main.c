@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <limits.h>
+#include <stdbool.h>
 
 #define ALPHABET_SIZE 256
 
@@ -39,10 +40,11 @@ void compute_table() {
     }
 }
 
-void compute_matches(unsigned char *input, size_t input_len) {
+void compute_matches(unsigned char *input, size_t input_len, char *match_preface) {
     size_t align_end = pattern_len; // 1-based index of current alignment
     size_t i; // 1-based index of current input position
     size_t p; // 1-based index of current pattern position
+    bool first_match = true;
 
     while (align_end <= input_len) {
         i = align_end;
@@ -50,8 +52,12 @@ void compute_matches(unsigned char *input, size_t input_len) {
         for (p = pattern_len; p >= 0;) {
             if (p == 0) {
                 //found match at i
+                if (first_match) {
+                    printf("%s\n", match_preface);
+                }
                 printf("    %d\n", i);
                 align_end++;
+                first_match = false;
                 break;
             }
             // switch to 0-based indexing
@@ -120,6 +126,10 @@ int main(int argc, char *argv[]) {
 
         input_len = ftsent->fts_statp->st_size;
 
+        if (input_len == 0) {
+            continue;
+        }
+
         // I shouldn't have to open an fd
         fd = open(ftsent->fts_path, O_RDONLY);
         if (fd == -1) {
@@ -130,15 +140,14 @@ int main(int argc, char *argv[]) {
 
         input = mmap(NULL, input_len, PROT_READ, MAP_PRIVATE, fd, 0);
         if (input == MAP_FAILED) {
-            fprintf(stderr, "Error mapping memory %s: ", ftsent->fts_path);
+            fprintf(stderr, "Error mapping memory %s: \n", ftsent->fts_path);
             perror("");
             return 1;
         }
 
-        printf("%s\n", ftsent->fts_path);
-        compute_matches(input, input_len);
+        compute_matches(input, input_len, ftsent->fts_path);
         if (munmap(input, input_len) == -1) {
-            fprintf(stderr, "Error unmapping memory %s: ", ftsent->fts_path);
+            fprintf(stderr, "Error unmapping memory %s\n", ftsent->fts_path);
             perror("");
             return 1;
         }
