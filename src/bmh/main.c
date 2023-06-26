@@ -6,21 +6,22 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <inttypes.h>
+#include <fts.h>
+#include <unistd.h>
+#include <stdlib.h>
 
 #define ALPHABET_SIZE 256
 
 #define CLI_USAGE "\
 USAGE:\n\
     exe <pattern> -- reads from pipe, not implemented\n\
-    exe <pattern> <input file>\n\
+    exe <pattern> <input file>...\n\
     exe <pattern> -i <input text> -- not implemented\n\
 "
 
 static intptr_t table[ALPHABET_SIZE];
 static unsigned char *pattern;
-static unsigned char *input;
 static size_t pattern_len;
-static size_t input_len;
 
 size_t max(size_t a, size_t b) {
     return a>b ? a : b;
@@ -37,7 +38,7 @@ void compute_table() {
     }
 }
 
-void compute_matches() {
+void compute_matches(unsigned char *input, size_t input_len) {
     size_t align_end = pattern_len; // 1-based index of current alignment
     size_t i; // 1-based index of current input position
     size_t p; // 1-based index of current pattern position
@@ -48,7 +49,7 @@ void compute_matches() {
         for (p = pattern_len; p >= 0;) {
             if (p == 0) {
                 //found match at i
-                printf("%d\n", i);
+                printf("    %d\n", i);
                 align_end++;
                 break;
             }
@@ -64,8 +65,13 @@ void compute_matches() {
     }
 }
 
+int compare_dirs(const FTSENT **a, const FTSENT **b) {
+    return strcmp( (**a).fts_name, (**b).fts_name );
+}
+
+
 int main(int argc, char *argv[]) {
-    if (argc != 3) {
+    if (argc < 3) {
         fprintf(stderr, CLI_USAGE);
         return 1;
     }
@@ -77,27 +83,60 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    int fd = open(argv[2], O_RDONLY);
-    if (fd == -1) {
-        fprintf(stderr, "Error opening file %s", argv[2]);
-        perror("");
-        return 1;
-    }
-
-    struct stat fd_stat;
-    int fstat_return_val = fstat(fd, &fd_stat);
-    if (fstat_return_val == -1) {
-        perror("Error calling fstat on file descriptor");
-        return 1;
-    }
-    input_len = fd_stat.st_size;
-
-    input = mmap(NULL, input_len, PROT_READ, MAP_PRIVATE, fd, 0);
-    if (input == MAP_FAILED) {
-        perror("Error mapping input file into memory");
-        return 1;
-    }
-
     compute_table();
-    compute_matches();
+    
+    FTS *fts = fts_open(argv + 2, FTS_PHYSICAL, compare_dirs);
+    FTSENT *ftsent;
+    unsigned short fts_info;
+    unsigned char *input;
+    size_t input_len;
+    int fd;
+
+    while (ftsent = fts_read(fts)) {
+        fts_info = ftsent->fts_info;
+
+        if (fts_info == FTS_DNR ||
+            fts_info == FTS_ERR ||
+            fts_info == FTS_NS)
+        {
+            fprintf(stderr, "Error with fts_open %s: ", ftsent->fts_path);
+            perror("");
+            continue;
+        }
+
+        if (!S_ISREG(ftsent->fts_statp->st_mode)) {
+            continue;
+        }
+
+        input_len = ftsent->fts_statp->st_size;
+
+        // I shouldn't have to open an fd
+        fd = open(ftsent->fts_path, O_RDONLY);
+        if (fd == -1) {
+            fprintf(stderr, "Error opening file descriptor for %s: ", ftsent->fts_path);
+            perror("");
+            exit(1);
+        }
+
+        input = mmap(NULL, input_len, PROT_READ, MAP_PRIVATE, fd, 0);
+        if (input == MAP_FAILED) {
+            fprintf(stderr, "Error mapping memory %s: ", ftsent->fts_path);
+            perror("");
+            return 1;
+        }
+
+        printf("%s\n", ftsent->fts_path);
+        compute_matches(input, input_len);
+        if (munmap(input, input_len) == -1) {
+            fprintf(stderr, "Error unmapping memory %s: ", ftsent->fts_path);
+            perror("");
+            return 1;
+        }
+
+        if (close(fd) == -1) {
+            fprintf(stderr, "Error closing file descriptor for %s\n", ftsent->fts_path);
+            perror("");
+            exit(1);
+        }
+    }
 }
