@@ -1,5 +1,8 @@
 ---
-file: gcc-text.txt
+file: gcc/
+source:
+  url: https://ftp.gnu.org/gnu/gcc/gcc-13.1.0/gcc-13.1.0.tar.gz
+  format: targz
 cases:
   - {pattern: "int main(int argc, char *argv[])", matches: 83}
   - {pattern: "for (int i = 0; i < n; i++)", matches: 995}
@@ -8,6 +11,9 @@ cases:
 
 ---
 file: kjv-bible.txt
+source:
+  url: https://www.gutenberg.org/files/10/10-0.txt
+  format: text
 cases:
   - {pattern: "testif", matches: 62}
   - {pattern: "And God", matches: 84}
@@ -18,7 +24,7 @@ cases:
   - {pattern: "the children of ", matches: 1254}
 
 ---
-file: dummy.txt
-cases:
-  - {pattern: "tion ", matches: 9}
-  - {pattern: "ed ", matches: 36}
+file: en-subtitles.txt
+source:
+  url: https://object.pouta.csc.fi/OPUS-OpenSubtitles/v2016/mono/en.txt.gz
+  format: gz

@@ -1,5 +1,7 @@
 #!/bin/python
 
+from yaml import load_all, dump_all, Loader, Dumper, YAMLError
+from pprint import pprint
 from sys import argv, stderr
 from os import path, listdir, getcwd, mkdir, remove
 from shutil import rmtree
@@ -18,7 +20,7 @@ def check_overwrite(file):
         raise Exception(f"tried to overwrite {file}")
 
 def datapath(*args):
-    base = path.join(getcwd(), "data")
+    base = path.join(getcwd(), "bench", "data")
     for arg in args:
         base = path.join(base, arg)
     return base
@@ -64,45 +66,23 @@ def gunzip(infile, outfile, decompressed_size, chunk_size):
             progress.update(l)
     txt.close()
 
+def get_text(data):
+    download(data['source']['url'], datapath(data['file']))
+
+#def get_targz(url, outfile):
+
 if not path.lexists(datapath()):
     mkdir(datapath())
 
-# recursively writes all files in a directory to an output file
-# writes in alphabetical order of full filepaths
-# does not follow symlinks
-def catdir(infile, outfile):
-    # got an UnboundLocalError without this
-    # don't think 'path' is in local scope so not sure why
-    from os import path
-    if path.lexists(outfile):
-        raise Exception(f"tried to overwrite {outfile}")
+cases_file = open("./bench/fixed-substring.yaml", "r")
+cases_obj = load_all(cases_file, Loader=Loader)
 
-    paths = set()
-    
-    def rec(file):
-        if path.islink(file):
-            return
-        file = path.realpath(file)
-        if path.isfile(file):
-            paths.add(file)
-        elif path.isdir(file):
-            for f in listdir(file):
-                rec(path.join(file, f))
-        else:
-            # not a file, directory, or link
-            return
+for obj in cases_obj:
+    if path.lexists(datapath(obj['file'])) or not obj['file'] == "kjv-bible.txt":
+        continue
+    get_text(obj)
 
-    rec(path.realpath(infile))
-
-    print(f"concatenating {infile} to {outfile}")
-    outfile = open(outfile, "w")
-    for path in tqdm.tqdm(sorted(paths), total=len(paths), unit='file'):
-        f = open(path, "rb")
-        outfile.write(str(f.read()))
-        f.close()
-
-    outfile.close()
-
+'''
 if not path.lexists(datapath("king-james-bible.txt")):
     print("downloading king-james-bible.txt")
     download(
@@ -133,4 +113,5 @@ if not path.lexists(datapath("gcc-13.1.0.txt")):
     remove(outfile)
     catdir(datapath("gcc-13.1.0"), datapath("gcc-13.1.0.txt"))
     rmtree(datapath("gcc-13.1.0"))
+'''
 
