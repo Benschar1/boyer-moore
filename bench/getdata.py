@@ -10,6 +10,7 @@ from urllib.request import urlopen
 import requests
 import tqdm
 import tarfile
+import tempfile
 
 def error(msg, errcode):
     stderr.write(msg)
@@ -26,7 +27,6 @@ def datapath(*args):
     return base
 
 def download(url, outfile, chunk_size=2**17):
-    check_overwrite(outfile)
     print(f"downloading {outfile}")
     response = requests.get(url, stream=True)
     progress = tqdm.tqdm(
@@ -66,21 +66,27 @@ def gunzip(infile, outfile, decompressed_size, chunk_size):
             progress.update(l)
     txt.close()
 
-def get_text(data):
-    download(data['source']['url'], datapath(data['file']))
-
-#def get_targz(url, outfile):
-
 if not path.lexists(datapath()):
     mkdir(datapath())
 
-cases_file = open("./bench/fixed-substring.yaml", "r")
+cases_file = open(path.join(getcwd(), "bench", "fixed-substring.yaml"), "r")
 cases_obj = load_all(cases_file, Loader=Loader)
 
 for obj in cases_obj:
-    if path.lexists(datapath(obj['file'])) or not obj['file'] == "kjv-bible.txt":
-        continue
-    get_text(obj)
+    filepath = datapath(obj['file'])
+    if path.lexists(filepath):
+        print(f"{filepath} exists, delete and rerun to redownload")
+    url = obj['source']['url']
+    match obj['source']['format']:
+        case 'text':
+            download(url, filepath)
+        case 'targz':
+            (_, temp_path) = tempfile.mkstemp(suffix='.tar.gz')
+            download(url, temp_path)
+            tarxf(temp_path, filepath)
+            remove(temp_path)
+        case _:
+            print(f"failed getting {obj['file']}, format not implemented")
 
 '''
 if not path.lexists(datapath("king-james-bible.txt")):
